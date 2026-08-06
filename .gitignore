@@ -1,0 +1,29 @@
+# === Python ===
+__pycache__/
+*.py[cod]
+*.pyo
+*.egg-info/
+dist/
+build/
+.venv/
+venv/
+env/
+
+# === Secrets — NEVER commit these ===
+.env
+*.env
+
+# === FAISS indexes (can be large) ===
+*.faiss
+*.pkl
+indexes/
+
+# === OS / editor noise ===
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+
+# === Node (for later phases) ===
+node_modules/
