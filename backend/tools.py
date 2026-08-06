@@ -31,7 +31,7 @@ import finance_core  # sibling module — pure Python, no AI
 # ── Load the FAISS retriever once at module import ───────────────────────────
 # WHY here and not inside search_filings()?
 #   Every call to search_filings would pay two cold-start costs:
-#     - OpenAI embedding client initialisation:  ~200 ms
+#     - HuggingFace model initialisation (sentence-transformers): ~200 ms
 #     - FAISS index file read from disk:          ~300 ms for a 100-page PDF
 #   At module level, these costs are paid once when `tools` is first imported
 #   and the retriever object lives in memory for every subsequent call.

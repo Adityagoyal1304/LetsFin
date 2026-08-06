@@ -35,10 +35,10 @@ warnings.filterwarnings("ignore", message=".*langchain-community.*")
 from dotenv import load_dotenv
 from langchain_community.document_loaders import PyPDFLoader
 from langchain_community.vectorstores import FAISS
-from langchain_openai import OpenAIEmbeddings
+from langchain_community.embeddings import HuggingFaceEmbeddings
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 
-load_dotenv()  # reads OPENAI_API_KEY from .env
+load_dotenv()  # reads env vars from .env
 
 
 def build_index(pdf_path: str, index_path: str) -> None:
@@ -70,8 +70,8 @@ def build_index(pdf_path: str, index_path: str) -> None:
 
     print(f"  Chunks created: {len(chunks)}")
 
-    print("Embedding chunks (this calls the OpenAI API) …")
-    embeddings = OpenAIEmbeddings()
+    print("Embedding chunks with HuggingFace all-MiniLM-L6-v2 (local, no API key needed) ...")
+    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     db = FAISS.from_documents(chunks, embeddings)
 
     db.save_local(index_path)
@@ -87,7 +87,7 @@ def query_index(index_path: str, query: str) -> None:
         sys.exit(1)
 
     print(f"Loading index from: {index_path}")
-    embeddings = OpenAIEmbeddings()
+    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
 
     # allow_dangerous_deserialization=True is required by LangChain when
     # loading a local FAISS index; the flag is a reminder that you should
@@ -97,7 +97,7 @@ def query_index(index_path: str, query: str) -> None:
     )
 
     results = db.similarity_search(query, k=4)
-    print(f"\nTop {len(results)} chunks for query: '{query}'\n{'─' * 60}")
+    print(f"\nTop {len(results)} chunks for query: '{query}'\n" + "-" * 60)
 
     for i, doc in enumerate(results, 1):
         src = doc.metadata.get("source", "unknown")
