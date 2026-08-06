@@ -63,7 +63,7 @@ def _safe_val(df: pd.DataFrame, row: str, col: int = 0):
     try:
         if row in df.index and col < len(df.columns):
             v = df.loc[row].iloc[col]
-            return None if pd.isna(v) else float(v)
+            return None if pd.isna(v) else float(v.item() if hasattr(v, "item") else v)  # type: ignore[arg-type]
     except Exception:
         pass
     return None
@@ -72,7 +72,10 @@ def _safe_val(df: pd.DataFrame, row: str, col: int = 0):
 def _fy(df: pd.DataFrame) -> str:
     """Return 'FY2024' from the first (most-recent) Timestamp column."""
     try:
-        return "FY" + str(df.columns[0].year)
+        col = df.columns[0]
+        # Always coerce to pd.Timestamp — handles both Timestamp and string columns
+        ts = pd.to_datetime(col)
+        return "FY" + str(ts.year)
     except Exception:
         return "FY?"
 
