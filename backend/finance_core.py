@@ -83,13 +83,18 @@ def simple_dcf(
     """
     if any(v is None for v in [fcf, growth_rate, discount_rate, terminal_multiple]):
         return None
+    # Asserts let the type checker know these are non-None beyond this point.
+    assert fcf is not None
+    assert growth_rate is not None
+    assert discount_rate is not None
+    assert terminal_multiple is not None
     if discount_rate == 0:
         return None
     if years < 1:
         return None
 
     pv_sum = 0.0
-    current_fcf = fcf
+    current_fcf: float = fcf
 
     for t in range(1, years + 1):
         current_fcf = current_fcf * (1 + growth_rate)
