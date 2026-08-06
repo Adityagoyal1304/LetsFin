@@ -13,7 +13,6 @@ Design rules applied here:
 """
 
 import os
-import sys
 import warnings
 
 import pandas as pd
@@ -36,23 +35,29 @@ import finance_core  # sibling module — pure Python, no AI
 #     - FAISS index file read from disk:          ~300 ms for a 100-page PDF
 #   At module level, these costs are paid once when `tools` is first imported
 #   and the retriever object lives in memory for every subsequent call.
-#   The trade-off: if the index is missing at startup, the module still imports —
-#   search_filings returns a helpful message instead of crashing at import time.
-from langchain_community.vectorstores import FAISS
-from langchain_openai import OpenAIEmbeddings
+#   The trade-off: if the index is missing or torch fails to load, the module
+#   still imports cleanly — search_filings returns a helpful message instead.
 
 _FAISS_INDEX_PATH = os.getenv("FAISS_INDEX_PATH", "./indexes/sample")
 _retriever = None
 
 try:
+    # These imports live inside try because they chain-import torch, which
+    # can fail on Windows if the Visual C++ runtime DLLs are missing.
+    # Keeping them here means a torch failure degrades only search_filings —
+    # the other three tools are completely unaffected.
+    from langchain_community.embeddings import HuggingFaceEmbeddings
+    from langchain_community.vectorstores import FAISS
+
+    _embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
     _db = FAISS.load_local(
         _FAISS_INDEX_PATH,
-        OpenAIEmbeddings(),
+        _embeddings,
         allow_dangerous_deserialization=True,
     )
     _retriever = _db.as_retriever(search_kwargs={"k": 4})
-except Exception as _load_err:
-    # Silently skip — search_filings will report this to the agent if called.
+except Exception:
+    # Silently skip — search_filings will report the issue to the agent.
     pass
 
 
@@ -61,8 +66,14 @@ except Exception as _load_err:
 def _safe_val(df: pd.DataFrame, row: str, col: int = 0):
     """Return float at df.loc[row].iloc[col], or None if missing / NaN."""
     try:
+        if df is None or df.empty:
+            return None
         if row in df.index and col < len(df.columns):
             v = df.loc[row].iloc[col]
+            # df.loc[row] returns a DataFrame when the index has duplicates;
+            # squeeze to a scalar before the isna check.
+            if hasattr(v, "iloc"):
+                v = v.iloc[0]
             return None if pd.isna(v) else float(v.item() if hasattr(v, "item") else v)  # type: ignore[arg-type]
     except Exception:
         pass
@@ -241,7 +252,11 @@ def search_filings(query: str) -> str:
             src  = doc.metadata.get("source", "unknown")
             page = doc.metadata.get("page", "?")
             # Page from PyPDFLoader is 0-indexed; add 1 for human-readable citation.
-            parts.append(f"[{i}] {src}, page {int(page) + 1}:\n{doc.page_content[:400]}")
+            try:
+                page_num = int(page) + 1  # PyPDFLoader is 0-indexed
+            except (ValueError, TypeError):
+                page_num = page  # fallback: show raw value if not an int
+            parts.append(f"[{i}] {src}, page {page_num}:\n{doc.page_content[:400]}")
 
         return "\n\n".join(parts)
     except Exception as e:

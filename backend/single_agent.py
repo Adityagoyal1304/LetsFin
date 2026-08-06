@@ -42,17 +42,17 @@ from dotenv import load_dotenv
 
 load_dotenv()  # must run before any LangChain import so LANGCHAIN_* vars are set
 
-from langchain_openai import ChatOpenAI
-from langgraph.prebuilt import create_react_agent
+from langchain_groq import ChatGroq
+from langgraph.prebuilt import create_react_agent  # LangGraph 1.x: still valid from prebuilt
 
 # Import all four tools from the module we just built.
 # Importing tools also triggers the FAISS index load (module-level code).
 from tools import compute_ratios, get_financials, get_price_history, search_filings
 
 # ── Build the agent ───────────────────────────────────────────────────────────
-# gpt-4o-mini: cheap, fast, good at tool selection. Swap to gpt-4o for harder
-# reasoning without changing any other code.
-_llm = ChatOpenAI(model="gpt-4o-mini", temperature=0)
+# llama-3.1-8b-instant: free on Groq, fast, good at tool selection.
+# Requires GROQ_API_KEY in .env — get a free key at console.groq.com.
+_llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0)
 
 _tools = [get_financials, compute_ratios, get_price_history, search_filings]
 
@@ -64,7 +64,7 @@ agent_app = create_react_agent(_llm, _tools)
 
 def run(question: str) -> None:
     """Invoke the agent with a question and print the final answer."""
-    print(f"\nQuestion: {question}\n{'─' * 60}")
+    print(f"\nQuestion: {question}\n" + "-" * 60)
 
     result = agent_app.invoke(
         {"messages": [{"role": "user", "content": question}]}
