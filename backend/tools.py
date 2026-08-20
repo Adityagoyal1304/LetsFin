@@ -41,24 +41,23 @@ import finance_core  # sibling module — pure Python, no AI
 _FAISS_INDEX_PATH = os.getenv("FAISS_INDEX_PATH", "./indexes/sample")
 _retriever = None
 
-try:
-    # These imports live inside try because they chain-import torch, which
-    # can fail on Windows if the Visual C++ runtime DLLs are missing.
-    # Keeping them here means a torch failure degrades only search_filings —
-    # the other three tools are completely unaffected.
-    from langchain_community.embeddings import HuggingFaceEmbeddings
-    from langchain_community.vectorstores import FAISS
+def get_retriever():
+    global _retriever
+    if _retriever is None:
+        try:
+            from langchain_community.embeddings import HuggingFaceEmbeddings
+            from langchain_community.vectorstores import FAISS
 
-    _embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
-    _db = FAISS.load_local(
-        _FAISS_INDEX_PATH,
-        _embeddings,
-        allow_dangerous_deserialization=True,
-    )
-    _retriever = _db.as_retriever(search_kwargs={"k": 4})
-except Exception:
-    # Silently skip — search_filings will report the issue to the agent.
-    pass
+            _embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+            _db = FAISS.load_local(
+                _FAISS_INDEX_PATH,
+                _embeddings,
+                allow_dangerous_deserialization=True,
+            )
+            _retriever = _db.as_retriever(search_kwargs={"k": 4})
+        except Exception:
+            pass
+    return _retriever
 
 
 # ── Private helpers ───────────────────────────────────────────────────────────
@@ -199,6 +198,9 @@ def get_price_history(ticker: str, period: str = "1y") -> str:
     Use this tool for questions about recent price performance, momentum, or
     how far the stock is from its high.
     """
+    _VALID_PERIODS = {"1d", "5d", "1mo", "3mo", "6mo", "1y", "2y", "5y", "10y", "ytd", "max"}
+    if period not in _VALID_PERIODS:
+        period = "1y"  # silently normalise; the docstring lists valid values
     try:
         t    = yf.Ticker(ticker)
         hist = t.history(period=period)

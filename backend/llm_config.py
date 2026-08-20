@@ -1,12 +1,27 @@
 from langchain_groq import ChatGroq
 import os
 
-# Ensure the Groq API key is present
-if not os.environ.get("GROQ_API_KEY"):
-    raise ValueError("GROQ_API_KEY environment variable is missing.")
+_router_llm = None
+_worker_llm = None
 
-# Fast, cheap model for routing and decision making
-router_llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0)
+def get_router_llm():
+    global _router_llm
+    if _router_llm is None:
+        if not os.environ.get("GROQ_API_KEY"):
+            raise ValueError("GROQ_API_KEY environment variable is missing.")
+        _router_llm = ChatGroq(model="llama-3.1-8b-instant", temperature=0)
+    return _router_llm
 
-# Larger, more capable model for tool calling, reasoning, and synthesis
-worker_llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0)
+def get_worker_llm():
+    global _worker_llm
+    if _worker_llm is None:
+        if not os.environ.get("GROQ_API_KEY"):
+            raise ValueError("GROQ_API_KEY environment variable is missing.")
+        _worker_llm = ChatGroq(model="llama-3.3-70b-versatile", temperature=0)
+    return _worker_llm
+
+def get_writer_llm():
+    return get_worker_llm()
+
+def get_critic_llm():
+    return get_worker_llm()
