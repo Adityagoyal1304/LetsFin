@@ -27,3 +27,19 @@ Thumbs.db
 
 # === Node (for later phases) ===
 node_modules/
+
+# === Generated / binary outputs (never commit) ===
+*.sqlite
+*.pdf
+*.png
+checkpoints.sqlite
+graph.png
+graph_phase4.png
+workflow_diagram.png
+
+# === Scratch / internal scripts ===
+commit_phase*.ps1
+fetch_diagram.py
+project_explainer.pdf
+project_explainer.md
+VERIFY.md
