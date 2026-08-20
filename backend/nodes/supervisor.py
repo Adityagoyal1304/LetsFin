@@ -3,7 +3,7 @@ from pydantic import BaseModel
 from langgraph.graph import END
 from langgraph.types import Command
 from state import ResearchState
-from llm_config import router_llm
+from llm_config import get_router_llm
 
 class Route(BaseModel):
     next_agent: Literal["fundamentals_agent", "filings_agent", "market_agent", "FINISH"]
@@ -38,6 +38,7 @@ def supervisor_agent(state: ResearchState) -> Command:
         evidence_str = "\n".join([f"{e['key']}: {e['value']}" for e in state["evidence"]])
         messages.append({"role": "user", "content": f"Evidence so far:\n{evidence_str}"})
 
+    router_llm = get_router_llm()
     router = router_llm.with_structured_output(Route)
     decision = router.invoke(messages)
     
