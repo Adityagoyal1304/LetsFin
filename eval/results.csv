@@ -1,0 +1,6 @@
+id,ticker,question,expected,correct,rejected_first_draft,latency
+1,AAPL,What is the company's Return on Equity (ROE) as a percentage?,151.9%,True,False,9.120450973510742
+2,MSFT,What is the market capitalization?,3.1T,True,False,13.75795292854309
+3,AAPL,Calculate the free cash flow for the most recent period.,124.20B,True,False,2.0944228172302246
+4,MSFT,Summarize the primary risks mentioned in their recent filings.,Concentration risk with major partners; intense competition in cloud and AI.,True,False,2.9878132343292236
+5,NVDA,How does NVDA's gross margin compare to AMD's based on market expectations?,NVDA has a higher gross margin (around 75% vs AMD's 50%).,True,False,15.966005802154541
