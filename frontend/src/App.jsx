@@ -10,17 +10,21 @@ function LoginScreen({ onLogin }) {
   const handleSubmit = async (e) => {
     e.preventDefault();
     const endpoint = isRegister ? '/auth/register' : '/auth/login';
-    const res = await fetch(`${API_URL}${endpoint}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password })
-    });
-    const data = await res.json();
-    if (data.token) {
-      localStorage.setItem('token', data.token);
-      onLogin(data.token);
-    } else {
-      alert(data.error);
+    try {
+      const res = await fetch(`${API_URL}${endpoint}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+        onLogin(data.token);
+      } else {
+        alert(data.error || 'Authentication failed');
+      }
+    } catch (err) {
+      alert(`Could not connect to server at ${API_URL}. Please ensure the backend and server containers are running.`);
     }
   };
 
