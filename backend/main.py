@@ -5,6 +5,11 @@ FastAPI application entry point.
 Phase 5: Adds /research and /resume endpoints for streaming graph updates via SSE.
 """
 import json
+import os
+from dotenv import load_dotenv, find_dotenv
+
+load_dotenv(find_dotenv())
+
 from fastapi import FastAPI
 from fastapi.responses import StreamingResponse
 from fastapi.middleware.cors import CORSMiddleware
@@ -143,4 +148,6 @@ async def resume(req: ResumeRequest):
 @app.get("/health")
 def health() -> dict:
     """Liveness check — returns 200 as long as the process is running."""
-    return {"status": "ok"}
+    from llm_config import _ensure_groq_key
+    _ensure_groq_key()
+    return {"status": "ok", "has_groq_key": bool(os.environ.get("GROQ_API_KEY"))}

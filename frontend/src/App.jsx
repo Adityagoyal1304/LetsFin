@@ -119,6 +119,10 @@ function EventLog({ events }) {
 
 function MemoView({ draft, isFinal, onResume, isStreaming }) {
   if (!draft) return null;
+  let parsed = draft;
+  if (typeof parsed === 'string') {
+    try { parsed = JSON.parse(parsed); } catch (e) { parsed = { thesis: parsed }; }
+  }
 
   return (
     <div className="glass-panel p-8 w-full mb-12 relative overflow-hidden">
@@ -127,34 +131,34 @@ function MemoView({ draft, isFinal, onResume, isStreaming }) {
           Draft Pending Human Approval
         </div>
       )}
-      <div className={`mt-${!isFinal ? '6' : '0'}`}>
+      <div className={!isFinal ? 'mt-6' : 'mt-0'}>
         <h1 className="text-3xl font-bold mb-6 text-white text-center">Investment Memo</h1>
         
         <div className="space-y-8 text-slate-300">
           <section>
             <h3 className="text-xl font-semibold text-indigo-300 mb-3 border-b border-white/10 pb-2">Thesis</h3>
-            <p className="leading-relaxed">{draft.thesis}</p>
+            <p className="leading-relaxed">{parsed.thesis}</p>
           </section>
 
           <div className="grid md:grid-cols-2 gap-8">
             <section>
               <h3 className="text-xl font-semibold text-emerald-400 mb-3 border-b border-white/10 pb-2">Strengths</h3>
               <ul className="list-disc list-inside space-y-2">
-                {(draft.strengths || []).map((s, i) => <li key={i}>{s}</li>)}
+                {(parsed.strengths || []).map((s, i) => <li key={i}>{s}</li>)}
               </ul>
             </section>
 
             <section>
               <h3 className="text-xl font-semibold text-rose-400 mb-3 border-b border-white/10 pb-2">Risks</h3>
               <ul className="list-disc list-inside space-y-2">
-                {(draft.risks || []).map((r, i) => <li key={i}>{r}</li>)}
+                {(parsed.risks || []).map((r, i) => <li key={i}>{r}</li>)}
               </ul>
             </section>
           </div>
 
           <section>
             <h3 className="text-xl font-semibold text-amber-300 mb-3 border-b border-white/10 pb-2">Valuation</h3>
-            <p className="leading-relaxed">{draft.valuation_summary}</p>
+            <p className="leading-relaxed">{parsed.valuation_summary}</p>
           </section>
         </div>
 
@@ -186,7 +190,10 @@ function MemoView({ draft, isFinal, onResume, isStreaming }) {
 }
 
 export default function App() {
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [token, setToken] = useState(() => {
+    const saved = localStorage.getItem('token');
+    return (saved && saved !== 'undefined' && saved !== 'null') ? saved : null;
+  });
   
   // Warm-up ping to mitigate Render free-tier cold starts
   useEffect(() => {
@@ -202,6 +209,19 @@ export default function App() {
   const [draft, setDraft] = useState(null);
   const [isFinal, setIsFinal] = useState(false);
   const [history, setHistory] = useState([]);
+  const memoRef = useRef(null);
+
+  useEffect(() => {
+    if (draft && memoRef.current) {
+      memoRef.current.scrollIntoView({ behavior: 'smooth' });
+    }
+  }, [draft]);
+
+  const logout = () => {
+    localStorage.removeItem('token');
+    setToken(null);
+    setHistory([]);
+  };
 
   useEffect(() => {
     if (token) fetchHistory();
@@ -210,16 +230,18 @@ export default function App() {
   const fetchHistory = async () => {
     try {
       const res = await fetch(`${API_URL}/reports`, { headers: { 'Authorization': `Bearer ${token}` } });
+      if (!res.ok) {
+        if (res.status === 401) {
+          logout();
+        }
+        return;
+      }
       const data = await res.json();
-      setHistory(data);
+      setHistory(Array.isArray(data) ? data : []);
     } catch (e) {
       console.error(e);
+      setHistory([]);
     }
-  };
-
-  const logout = () => {
-    localStorage.removeItem('token');
-    setToken(null);
   };
 
   if (!token) return <LoginScreen onLogin={setToken} />;
@@ -360,7 +382,7 @@ export default function App() {
           <button onClick={logout} className="text-xs text-indigo-400 hover:text-indigo-300">Logout</button>
         </div>
         <div className="flex-1 overflow-y-auto space-y-2 pr-2">
-          {history.map(rep => (
+          {(Array.isArray(history) ? history : []).map(rep => (
             <div 
               key={rep._id} 
               onClick={() => loadReport(rep)}
@@ -375,7 +397,7 @@ export default function App() {
               <div className="text-xs text-slate-500 mt-1 truncate">{new Date(rep.createdAt).toLocaleString()}</div>
             </div>
           ))}
-          {history.length === 0 && <p className="text-slate-500 text-sm italic">No past reports</p>}
+          {(!Array.isArray(history) || history.length === 0) && <p className="text-slate-500 text-sm italic">No past reports</p>}
         </div>
       </div>
 
@@ -388,7 +410,9 @@ export default function App() {
             onRun={startResearch} isStreaming={isStreaming}
           />
           <EventLog events={events} />
-          <MemoView draft={draft} isFinal={isFinal} onResume={handleResume} isStreaming={isStreaming} />
+          <div ref={memoRef}>
+            <MemoView draft={draft} isFinal={isFinal} onResume={handleResume} isStreaming={isStreaming} />
+          </div>
         </div>
       </div>
     </div>

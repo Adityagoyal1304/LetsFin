@@ -87,7 +87,7 @@ Do not add new numbers that are not in the evidence.
     human_msg = HumanMessage(content=human_content)
 
     writer_llm = get_writer_llm()
-    structured = writer_llm.with_structured_output(Memo)
+    structured = writer_llm.with_structured_output(Memo, method="json_schema")
     memo: Memo = structured.invoke([system_msg, human_msg])
 
     # Serialise Memo to a JSON string for state["draft"]

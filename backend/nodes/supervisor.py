@@ -14,7 +14,7 @@ def supervisor_agent(state: ResearchState) -> Command:
     
     # Hard safety cap
     if len(visited) >= 3:
-        return Command(goto=END)
+        return Command(goto="valuation")
 
     system_prompt = (
         "You are a research supervisor. Based on the user's question and the evidence gathered so far, "
@@ -39,14 +39,14 @@ def supervisor_agent(state: ResearchState) -> Command:
         messages.append({"role": "user", "content": f"Evidence so far:\n{evidence_str}"})
 
     router_llm = get_router_llm()
-    router = router_llm.with_structured_output(Route)
+    router = router_llm.with_structured_output(Route, method="json_schema")
     decision = router.invoke(messages)
     
     if decision.next_agent == "FINISH":
-        return Command(goto=END)
+        return Command(goto="valuation")
     
     # Fallback to prevent cycles if model disobeys instructions
     if decision.next_agent in visited:
-        return Command(goto=END)
+        return Command(goto="valuation")
         
     return Command(goto=decision.next_agent)
